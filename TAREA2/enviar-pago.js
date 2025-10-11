@@ -1,5 +1,5 @@
 import {
-    Horizon, 
+  Horizon, 
   Keypair,
   TransactionBuilder,
   Networks,
@@ -9,83 +9,194 @@ import {
   Memo
 } from '@stellar/stellar-sdk';
 
-//IMPORTAMOS LA KEYPAIR, SERVER, TRANSACTIONBUILDER, NETWORKS, OPERATION, ASSET, BASE_FEE Y MEMO
-//desde stellar sdk
+// IMPORTAMOS todo lo necesario desde el SDK de Stellar:
+// - Horizon: Para conectarnos a la red de Stellar
+// - Keypair: Para manejar las llaves públicas y privadas
+// - TransactionBuilder: Para construir transacciones
+// - Networks: Para especificar si usamos testnet o mainnet
+// - Operation: Para definir operaciones (como pagos)
+// - Asset: Para definir qué activo enviamos (XLM u otros)
+// - BASE_FEE: La comisión base de Stellar
+// - Memo: Para agregar notas a las transacciones
 
-//le digo que la network es testnet
+// Configuración de la red: conectamos con el servidor de testnet
 const server = new Horizon.Server('https://horizon-testnet.stellar.org');
 const networkPassphrase = Networks.TESTNET;
 
-//aca ponemos la secret key, pegamos de lo que generamos
-const SECRET_KEY = 'SBXXX...'; // Tu secret key
-const DESTINATION = 'GBYYY...'; // Cuenta destino
+// IMPORTANTE: aca va mi SECRET KEY (la que guardaste al crear tu cuenta) (despues borrar esta linea)
+const SECRET_KEY = 'SBXXX...'; // Tu secret key - NUNCA COMPARTIR
 
-//para destinarion nos copiamos el address de mi compañera
+// Array con los destinatarios: cada uno tiene su public key y un memo único
+const destinatarios = [
+  { publicKey: "GXXX...1", memo: "Pago-001" },  // Primer destinatario
+  { publicKey: "GXXX...2", memo: "Pago-002" },  // Segundo destinatario
+  { publicKey: "GXXX...3", memo: "Pago-003" }   // Tercer destinatario
+];
 
-
-//funcino asincrona que recibe amount y memo.
-async function enviarPago(amount, memo = '') {
+// Función asíncrona que envía un pago individual
+// Recibe: la cantidad (amount), el destino (destination) y el memo
+async function enviarPago(amount, destination, memo = '') {
   try {
-    console.log('🚀 Iniciando pago...\n');
+    console.log(`\n💸 Enviando ${amount} XLM a ${destination.substring(0, 8)}...`);
+    console.log(`📝 Memo: ${memo}`);
     
-    // Paso 1: Cargar tu cuenta
-    //lo hace automaticamente de from secret del secret key que pusimos antes
+    // PASO 1: Cargar la cuenta fuente (la mia)
+    // fromSecret() convierte mi SECRET_KEY en un objeto Keypair
     const sourceKeys = Keypair.fromSecret(SECRET_KEY);
+    
+    // loadAccount() obtiene información actualizada de mi cuenta desde la blockchain
+    // Necesitamos esto para conocer el sequence number (número de secuencia)
     const sourceAccount = await server.loadAccount(sourceKeys.publicKey());
     
-    //me da el balance actual de mi cuenta con la que envio
-    console.log(`Balance actual: ${sourceAccount.balances[0].balance} XLM\n`);
+    // Mostrar el balance actual de XLM (está en la posición 0 del array de balances)
+    console.log(`💰 Balance actual: ${sourceAccount.balances[0].balance} XLM`);
     
-    // Paso 2: Construir transacción
-    //el trasnaction builde rpuede crear la operacion completa
-    
-    //primero le digo cual va a ser el fee (que es BASE_FEE porque en stellar es fijo)
-    //el asset nativo es XLM
-    //le paso la cantidad que quiero enviar
-    //le paso el memo que quiero poner (si no pongo nada pone none)
-    //set timeout es para que si no se confirma en 30 segundos no se envie
-    //y build para construirla
-    //me devuelve la transaccion completa
+    // PASO 2: Construir la transacción
+    // TransactionBuilder es como un constructor de transacciones paso a paso
     const transaction = new TransactionBuilder(sourceAccount, {
-      fee: BASE_FEE,
-      networkPassphrase: networkPassphrase
+      fee: BASE_FEE,                    // Comisión fija de Stellar (100 stroops = 0.00001 XLM)
+      networkPassphrase: networkPassphrase  // Identificador de la red (testnet en este caso)
     })
+      // Agregar la operación de pago
       .addOperation(Operation.payment({
-        destination: DESTINATION,
-        asset: Asset.native(),
-        amount: amount.toString()
+        destination: destination,        // A quién le enviamos
+        asset: Asset.native(),          // Asset.native() = XLM (la moneda nativa)
+        amount: amount.toString()       // Cantidad a enviar (debe ser string)
       }))
-      .addMemo(memo ? Memo.text(memo) : Memo.none())
+      // Agregar un memo (nota) a la transacción
+      .addMemo(memo ? Memo.text(memo) : Memo.none())  // Si hay memo lo agrega, sino pone "none"
+      // Timeout: si no se confirma en 30 segundos, la transacción expira
       .setTimeout(30)
-      .build(); //construye la transaccion
+      // build() construye la transacción completa lista para firmar
+      .build();
     
-    // Paso 3: Firmar
-    transaction.sign(sourceKeys); //firmo con mi secret key
+    // PASO 3: Firmar la transacción con mi secret key
+    // Esto es como poner mi "firma digital" para autorizar el pago
+    transaction.sign(sourceKeys);
     
-    // Paso 4: Enviar
-    const result = await server.submitTransaction(transaction); //espero el server para enviar
-
-    //console log con el hash
-    console.log('🎉 ¡PAGO EXITOSO!\n');
-    console.log(`💰 Enviaste: ${amount} XLM`);
-    console.log(`🔗 Hash: ${result.hash}\n`);
+    // PASO 4: Enviar la transacción a la red de Stellar
+    // submitTransaction() envía la transacción firmada al servidor
+    // await espera a que el servidor procese y confirme la transacción
+    const result = await server.submitTransaction(transaction);
     
+    // Si llegamos aquí, el pago fue exitoso
+    console.log('✅ ¡PAGO EXITOSO!');
+    console.log(`🔗 Hash: ${result.hash}`);
+    console.log(`📊 Ledger: ${result.ledger}`);  // Número del ledger donde se guardó
+    
+    // Retornar el resultado completo por si lo necesitamos después
     return result;
     
-    //si sale mal me da el error
   } catch (error) {
-    console.error('❌ ERROR:', error.message);
+    // Si algo sale mal, capturamos el error y lo mostramos
+    console.error('❌ ERROR en el pago:', error.message);
+    // Re-lanzamos el error para que se detenga el proceso
     throw error;
   }
 }
 
-enviarPago('25', '¡Mi primer pago con código! 🚀');
+// Función principal que envía pagos a múltiples destinos
+async function enviarPagosMultiples() {
+  console.log('🚀 SISTEMA DE PAGOS AUTOMATIZADO');
+  console.log('='.repeat(60));
+  console.log(`📋 Total de pagos a realizar: ${destinatarios.length}`);
+  console.log(`💵 Monto por pago: 2 XLM`);
+  console.log(`💰 Total a enviar: ${destinatarios.length * 2} XLM`);
+  console.log('='.repeat(60));
+  
+  // Array para guardar los resultados de cada transacción
+  const resultados = [];
+  
+  // Contador para saber cuántos pagos van exitosos
+  let pagosExitosos = 0;
+  
+  // BUCLE: Recorrer cada destinatario y enviarle su pago
+  for (let i = 0; i < destinatarios.length; i++) {
+    const destinatario = destinatarios[i];
+    
+    console.log(`\n📤 Procesando pago ${i + 1}/${destinatarios.length}...`);
+    console.log('-'.repeat(60));
+    
+    try {
+      // Enviar 2 XLM a este destinatario con su memo único
+      const resultado = await enviarPago(
+        '2',                          // Cantidad: 2 XLM
+        destinatario.publicKey,       // Destino: la public key del destinatario
+        destinatario.memo             // Memo único de identificación
+      );
+      
+      // Guardar el resultado en el array
+      resultados.push({
+        numero: i + 1,
+        destinatario: destinatario.publicKey,
+        memo: destinatario.memo,
+        hash: resultado.hash,
+        exitoso: true,
+        ledger: resultado.ledger
+      });
+      
+      // Incrementar el contador de pagos exitosos
+      pagosExitosos++;
+      
+      // Esperar 1 segundo antes del siguiente pago
+      // Esto evita saturar la red y da tiempo para confirmar cada transacción
+      if (i < destinatarios.length - 1) {
+        console.log('\n⏳ Esperando 1 segundo antes del siguiente pago...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      // Si este pago falla, lo registramos pero NO detenemos el proceso
+      console.error(`❌ Pago ${i + 1} FALLÓ`);
+      
+      resultados.push({
+        numero: i + 1,
+        destinatario: destinatario.publicKey,
+        memo: destinatario.memo,
+        exitoso: false,
+        error: error.message
+      });
+    }
+  }
+  
+  // RESUMEN FINAL: Mostrar un resumen de todos los pagos realizados
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 RESUMEN DE PAGOS');
+  console.log('='.repeat(60));
+  console.log(`✅ Pagos exitosos: ${pagosExitosos}/${destinatarios.length}`);
+  console.log(`❌ Pagos fallidos: ${destinatarios.length - pagosExitosos}/${destinatarios.length}`);
+  console.log('='.repeat(60));
+  
+  // Mostrar detalle de cada pago
+  resultados.forEach((resultado) => {
+    console.log(`\n💳 Pago ${resultado.numero}:`);
+    console.log(`   Destinatario: ${resultado.destinatario.substring(0, 10)}...`);
+    console.log(`   Memo: ${resultado.memo}`);
+    
+    if (resultado.exitoso) {
+      console.log(`   Estado: ✅ Exitoso`);
+      console.log(`   Hash: ${resultado.hash}`);
+      console.log(`   Ledger: ${resultado.ledger}`);
+    } else {
+      console.log(`   Estado: ❌ Fallido`);
+      console.log(`   Error: ${resultado.error}`);
+    }
+  });
+  
+  console.log('\n' + '='.repeat(60));
+  console.log('🏁 Proceso completado');
+  console.log('='.repeat(60));
+  
+  // Retornar todos los resultados
+  return resultados;
+}
 
-//luego escribir node enviar-pago.js para ejecutarlo
+// EJECUTAR el sistema de pagos múltiples
+enviarPagosMultiples();
 
-//sale error, ¿por que? --> porque hoy stellar no llama mas asi al servidor
-//antes decia SERVER .
-//vamos a depelovers.stellar.org y si ves el SDK sale Javascript SDK
-//ahi tenes la documentacion y si vas a HORIZON: tiene por dentro al server
-//el server es parte de horizon, para llamar al server primero tengo que llamar al horizon y despues pasarle la red de testnet
-//podemos ver el npm con toda la informacion
+// INSTRUCCIONES PARA EJECUTAR:
+// 1. Reemplaza SECRET_KEY con tu secret key real
+// 2. Reemplaza las public keys en el array destinatarios con cuentas reales
+// 3. Asegúrate de tener suficiente balance (al menos 6 XLM + fees)
+// 4. Ejecuta con: node enviar-pago.js
+// 5. Recuerda tener "type": "module" en tu package.json
