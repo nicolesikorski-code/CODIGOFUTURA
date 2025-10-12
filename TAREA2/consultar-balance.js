@@ -253,6 +253,6 @@ async function monitorearCuentas(publicKeys) {
 monitorearCuentas(PUBLIC_KEYS);
 
 // INSTRUCCIONES PARA EJECUTAR:
-// 1. Reemplazar las public keys en el array PUBLIC_KEYS con cuentas reales
-// 2. Ejecutar con: node consultar-balance.js
-// 3. Recordar tener "type": "module" en tu package.json
+// 1. Reemplaza las public keys en el array PUBLIC_KEYS con cuentas reales
+// 2. Ejecuta con: node consultar-balance.js
+// 3. Recuerda tener "type": "module" en tu package.json

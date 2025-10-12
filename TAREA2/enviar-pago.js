@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import {
   Horizon, 
   Keypair,
@@ -23,14 +25,24 @@ import {
 const server = new Horizon.Server('https://horizon-testnet.stellar.org');
 const networkPassphrase = Networks.TESTNET;
 
-// IMPORTANTE: aca va mi SECRET KEY (la que guardaste al crear tu cuenta) (despues borrar esta linea)
-const SECRET_KEY = 'SBXXX...'; // Tu secret key - NUNCA COMPARTIR
+// PASO 1: Cargar la cuenta fuente (la mia)
+    // fromSecret() convierte mi SECRET_KEY en un objeto Keypair
+    const SECRET_KEY = process.env.SECRET_KEY_1;
+
+    // Validar que la SECRET_KEY exista
+    if (!SECRET_KEY) {
+      console.error('❌ ERROR: SECRET_KEY_1 no está definida en el archivo .env');
+      console.log('💡 Asegúrate de:');
+      console.log('   1. Tener un archivo .env en la raíz del proyecto');
+      console.log('   2. Que contenga: SECRET_KEY_1=TU_SECRET_KEY');
+      process.exit(1);
+    }
 
 // Array con los destinatarios: cada uno tiene su public key y un memo único
 const destinatarios = [
-  { publicKey: "GXXX...1", memo: "Pago-001" },  // Primer destinatario
-  { publicKey: "GXXX...2", memo: "Pago-002" },  // Segundo destinatario
-  { publicKey: "GXXX...3", memo: "Pago-003" }   // Tercer destinatario
+  { publicKey: "GBVUFAIES6NJPSV5QOXLE7ZQOQANH6JT7F5IVA4NRXG64D73N7GSZOMO", memo: "Pago 1!!" },  // Primer destinatario
+  { publicKey: "GAW3INSMXYEP2FR3BHEPLRVCELIOYZ6KLXRJL6SQI4QCBZ4NVSB2XF6A", memo: "Pago 2!!" },  // Segundo destinatario
+  { publicKey: "GBLONI3TVYIKZNDSMWHMXBM4ATSVOA7225BRV6T6BFTL3AQ6RDOCOKDA", memo: "Pago 3!!" }   // Tercer destinatario
 ];
 
 // Función asíncrona que envía un pago individual
@@ -40,8 +52,7 @@ async function enviarPago(amount, destination, memo = '') {
     console.log(`\n💸 Enviando ${amount} XLM a ${destination.substring(0, 8)}...`);
     console.log(`📝 Memo: ${memo}`);
     
-    // PASO 1: Cargar la cuenta fuente (la mia)
-    // fromSecret() convierte mi SECRET_KEY en un objeto Keypair
+    
     const sourceKeys = Keypair.fromSecret(SECRET_KEY);
     
     // loadAccount() obtiene información actualizada de mi cuenta desde la blockchain
