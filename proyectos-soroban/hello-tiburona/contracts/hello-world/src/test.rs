@@ -1,8 +1,9 @@
-#[cfg(test)]
+#![cfg(test)]
 mod test {
     use crate::*;
     use soroban_sdk::{testutils::Address as _, Env};
 
+    // ✅ FASE 7: Tests básicos requeridos
     #[test]
     fn test_initialize() {
         let env = Env::default();
@@ -13,6 +14,7 @@ mod test {
 
         client.initialize(&admin);
         assert_eq!(client.get_contador(), 0);
+        assert_eq!(client.get_limite(), 32); // Reto 3
     }
 
     #[test]
@@ -23,10 +25,8 @@ mod test {
 
         let admin = Address::generate(&env);
 
-        // Primera inicialización funciona
         client.initialize(&admin);
-
-        // Segunda inicialización debe fallar
+        
         let resultado = client.try_initialize(&admin);
         assert!(resultado.is_err());
     }
@@ -50,6 +50,41 @@ mod test {
         assert_eq!(client.get_ultimo_saludo(&usuario), Some(nombre));
     }
 
+    // ✅ PASO 7.4: Test nombre vacío (FALTABA)
+    #[test]
+    fn test_nombre_vacio() {
+        let env = Env::default();
+        let contract_id = env.register(HelloContract, ());
+        let client = HelloContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let usuario = Address::generate(&env);
+
+        client.initialize(&admin);
+
+        let vacio = Symbol::new(&env, "");
+        let resultado = client.try_hello(&usuario, &vacio);
+        assert!(resultado.is_err());
+    }
+
+    // ✅ Test nombre muy largo (debería agregarse)
+    #[test]
+    fn test_nombre_muy_largo() {
+        let env = Env::default();
+        let contract_id = env.register(HelloContract, ());
+        let client = HelloContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let usuario = Address::generate(&env);
+
+        client.initialize(&admin);
+
+        // Crear un nombre de 33 caracteres (más largo que el límite de 32)
+        let largo = Symbol::new(&env, "NombreMuyLargoQueExcedeLimite123");
+        let resultado = client.try_hello(&usuario, &largo);
+        assert!(resultado.is_err());
+    }
+
     #[test]
     fn test_reset_solo_admin() {
         let env = Env::default();
@@ -57,16 +92,13 @@ mod test {
         let client = HelloContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
-        let _otro = Address::generate(&env);
         let usuario = Address::generate(&env);
 
         client.initialize(&admin);
 
-        // Hacer saludos
         client.hello(&usuario, &Symbol::new(&env, "Test"));
         assert_eq!(client.get_contador(), 1);
 
-        // Admin puede resetear
         client.reset_contador(&admin);
         assert_eq!(client.get_contador(), 0);
     }
@@ -82,12 +114,9 @@ mod test {
 
         client.initialize(&admin);
 
-        // Otro usuario intenta resetear - debe fallar
         let resultado = client.try_reset_contador(&otro);
         assert!(resultado.is_err());
     }
-
-    // Al final de test.rs, antes del último }
 
     // 🎯 RETO 1: Test contador por usuario
     #[test]
@@ -171,5 +200,35 @@ mod test {
         // Otro usuario no puede cambiar el límite
         let resultado = client.try_set_limite(&otro, &100);
         assert!(resultado.is_err());
+    }
+
+    // 🎯 BONUS: Test que el límite se aplica correctamente en hello()
+    #[test]
+    fn test_limite_dinamico_en_hello() {
+        let env = Env::default();
+        let contract_id = env.register(HelloContract, ());
+        let client = HelloContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let usuario = Address::generate(&env);
+
+        client.initialize(&admin);
+
+        // Con límite de 32, un nombre de 10 caracteres funciona
+        let nombre_corto = Symbol::new(&env, "NombreOK");
+        let resultado = client.hello(&usuario, &nombre_corto);
+        assert_eq!(resultado, Symbol::new(&env, "Hola"));
+
+        // Cambiar límite a 5
+        client.set_limite(&admin, &5);
+
+        // Ahora un nombre de 10 caracteres falla
+        let resultado = client.try_hello(&usuario, &nombre_corto);
+        assert!(resultado.is_err());
+
+        // Pero uno de 4 caracteres funciona
+        let nombre_muy_corto = Symbol::new(&env, "Ana");
+        let resultado = client.hello(&usuario, &nombre_muy_corto);
+        assert_eq!(resultado, Symbol::new(&env, "Hola"));
     }
 }
