@@ -17,9 +17,9 @@ pub enum DataKey {
     Admin,
     ContadorSaludos,
     UltimoSaludo(Address),
-    // 🎯 RETO 1: Contador por usuario
+    // RETO 1: Contador por usuario
     ContadorPorUsuario(Address),
-    // 🎯 RETO 3: Límite configurable
+    // RETO 3: Limite configurable
     LimiteCaracteres,
 }
 
@@ -37,7 +37,7 @@ impl HelloContract {
             .instance()
             .set(&DataKey::ContadorSaludos, &0u32);
 
-        // 🎯 RETO 3: Inicializar límite por defecto (32 caracteres)
+        // RETO 3: Inicializar limite por defecto (32 caracteres)
         env.storage()
             .instance()
             .set(&DataKey::LimiteCaracteres, &32u32);

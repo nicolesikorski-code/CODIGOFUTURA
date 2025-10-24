@@ -3,7 +3,7 @@ mod test {
     use crate::*;
     use soroban_sdk::{testutils::Address as _, Env};
 
-    // ✅ FASE 7: Tests básicos requeridos
+    // FASE 7: Tests basicos requeridos
     #[test]
     fn test_initialize() {
         let env = Env::default();
