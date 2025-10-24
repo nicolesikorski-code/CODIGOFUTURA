@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, Symbol};
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, String, Symbol};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -47,14 +47,13 @@ impl HelloContract {
         Ok(())
     }
 
-    pub fn hello(env: Env, usuario: Address, nombre: Symbol) -> Result<Symbol, Error> {
+    pub fn hello(env: Env, usuario: Address, nombre: String) -> Result<Symbol, Error> {
         // Verificar que el contrato esté inicializado
         if !env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::NoInicializado);
         }
         // ✅ PASO 4.2: Validación - Nombre no vacío
-        let nombre_str = nombre.to_string();
-        if nombre_str.len() == 0 {
+        if nombre.len() == 0 {
             return Err(Error::NombreVacio);
         }
 
@@ -66,7 +65,7 @@ impl HelloContract {
             .get(&DataKey::LimiteCaracteres)
             .unwrap_or(32);
 
-        if nombre_str.len() > limite as usize {
+        if nombre.len() > limite {
             return Err(Error::NombreMuyLargo);
         }
 
@@ -112,7 +111,7 @@ impl HelloContract {
             .unwrap_or(0)
     }
 
-    pub fn get_ultimo_saludo(env: Env, usuario: Address) -> Option<Symbol> {
+    pub fn get_ultimo_saludo(env: Env, usuario: Address) -> Option<String> {
         env.storage()
             .persistent()
             .get(&DataKey::UltimoSaludo(usuario))

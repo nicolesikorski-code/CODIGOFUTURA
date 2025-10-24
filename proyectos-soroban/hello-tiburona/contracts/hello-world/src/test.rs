@@ -1,7 +1,7 @@
 #![cfg(test)]
 mod test {
     use crate::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+    use soroban_sdk::{testutils::Address as _, Env, String};
 
     // FASE 7: Tests basicos requeridos
     #[test]
@@ -42,12 +42,12 @@ mod test {
 
         client.initialize(&admin);
 
-        let nombre = Symbol::new(&env, "Ana");
+        let nombre = String::from_str(&env, "Ana");
         let resultado = client.hello(&usuario, &nombre);
 
         assert_eq!(resultado, Symbol::new(&env, "Hola"));
         assert_eq!(client.get_contador(), 1);
-        assert_eq!(client.get_ultimo_saludo(&usuario), Some(nombre));
+        assert_eq!(client.get_ultimo_saludo(&usuario), Some(String::from_str(&env, "Ana")));
     }
 
     // ✅ PASO 7.4: Test nombre vacío (FALTABA)
@@ -62,7 +62,7 @@ mod test {
 
         client.initialize(&admin);
 
-        let vacio = Symbol::new(&env, "");
+        let vacio = String::from_str(&env, "");
         let resultado = client.try_hello(&usuario, &vacio);
         assert!(resultado.is_err());
     }
@@ -80,7 +80,7 @@ mod test {
         client.initialize(&admin);
 
         // Crear un nombre de 33 caracteres (más largo que el límite de 32)
-        let largo = Symbol::new(&env, "NombreMuyLargoQueExcedeLimite123");
+        let largo = String::from_str(&env, "NombreMuyLargoQueExcedeLimite123");
         let resultado = client.try_hello(&usuario, &largo);
         assert!(resultado.is_err());
     }
@@ -96,7 +96,7 @@ mod test {
 
         client.initialize(&admin);
 
-        client.hello(&usuario, &Symbol::new(&env, "Test"));
+        client.hello(&usuario, &String::from_str(&env, "Test"));
         assert_eq!(client.get_contador(), 1);
 
         client.reset_contador(&admin);
@@ -132,12 +132,12 @@ mod test {
         client.initialize(&admin);
 
         // Usuario 1 saluda 3 veces
-        client.hello(&usuario1, &Symbol::new(&env, "Ana"));
-        client.hello(&usuario1, &Symbol::new(&env, "Ana"));
-        client.hello(&usuario1, &Symbol::new(&env, "Ana"));
+        client.hello(&usuario1, &String::from_str(&env, "Ana"));
+        client.hello(&usuario1, &String::from_str(&env, "Ana"));
+        client.hello(&usuario1, &String::from_str(&env, "Ana"));
 
         // Usuario 2 saluda 1 vez
-        client.hello(&usuario2, &Symbol::new(&env, "Bob"));
+        client.hello(&usuario2, &String::from_str(&env, "Bob"));
 
         // Verificar contadores individuales
         assert_eq!(client.get_contador_usuario(&usuario1), 3);
@@ -161,7 +161,7 @@ mod test {
         client.initialize(&admin1);
 
         // Admin1 puede resetear
-        client.hello(&usuario, &Symbol::new(&env, "Test"));
+        client.hello(&usuario, &String::from_str(&env, "Test"));
         client.reset_contador(&admin1);
         assert_eq!(client.get_contador(), 0);
 
@@ -169,7 +169,7 @@ mod test {
         client.transfer_admin(&admin1, &admin2);
 
         // Admin1 ya no puede resetear
-        client.hello(&usuario, &Symbol::new(&env, "Test"));
+        client.hello(&usuario, &String::from_str(&env, "Test"));
         let resultado = client.try_reset_contador(&admin1);
         assert!(resultado.is_err());
 
@@ -215,7 +215,7 @@ mod test {
         client.initialize(&admin);
 
         // Con límite de 32, un nombre de 10 caracteres funciona
-        let nombre_corto = Symbol::new(&env, "NombreOK");
+        let nombre_corto = String::from_str(&env, "NombreOK");
         let resultado = client.hello(&usuario, &nombre_corto);
         assert_eq!(resultado, Symbol::new(&env, "Hola"));
 
@@ -227,7 +227,7 @@ mod test {
         assert!(resultado.is_err());
 
         // Pero uno de 4 caracteres funciona
-        let nombre_muy_corto = Symbol::new(&env, "Ana");
+        let nombre_muy_corto = String::from_str(&env, "Ana");
         let resultado = client.hello(&usuario, &nombre_muy_corto);
         assert_eq!(resultado, Symbol::new(&env, "Hola"));
     }
